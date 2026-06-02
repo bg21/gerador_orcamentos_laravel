@@ -27,6 +27,8 @@ class CompanySetting extends Model
         'signature_text',
         'signature_path',
         'pdf_template',
+        'default_email_subject',
+        'default_email_message',
     ];
 
     /**

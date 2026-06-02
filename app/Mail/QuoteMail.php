@@ -20,7 +20,8 @@ class QuoteMail extends Mailable
      */
     public function __construct(
         public Quote $quote,
-        public string $customMessage = ''
+        public string $customMessage = '',
+        public string $subjectString = ''
     ) {}
 
     /**
@@ -31,8 +32,10 @@ class QuoteMail extends Mailable
         $setting    = $this->quote->user->companySetting;
         $senderName = $setting?->company_name ?? $this->quote->user->name;
 
+        $finalSubject = $this->subjectString ?: "Orçamento {$this->quote->quote_number} — {$senderName}";
+
         return new Envelope(
-            subject: "Orçamento {$this->quote->quote_number} — {$senderName}",
+            subject: $finalSubject,
         );
     }
 

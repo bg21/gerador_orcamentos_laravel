@@ -158,7 +158,29 @@
                     </div>
                 </div>
 
-                <!-- Card 4: Modelo de PDF -->
+                <!-- Card 4: E-mail Padrão -->
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-gray-150 p-6 md:p-8">
+                    <div class="border-b border-gray-150 pb-4 mb-6">
+                        <h3 class="text-lg font-bold text-gray-900">{{ __('Mensagem Padrão de E-mail') }}</h3>
+                        <p class="text-sm text-gray-500 mt-1">{{ __('Configure o assunto e a mensagem padrão que aparecerão ao enviar um orçamento por e-mail para o cliente.') }}</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-6">
+                        <div>
+                            <x-input-label for="default_email_subject" :value="__('Assunto Padrão do E-mail')" />
+                            <x-text-input id="default_email_subject" name="default_email_subject" type="text" class="mt-1 block w-full" value="{{ old('default_email_subject', $setting->default_email_subject) }}" placeholder="Ex: Proposta Comercial - {Sua Empresa}" />
+                            <p class="text-xs text-gray-400 mt-1.5">{{ __('Assunto sugerido ao abrir a janela de envio.') }}</p>
+                        </div>
+
+                        <div>
+                            <x-input-label for="default_email_message" :value="__('Corpo do E-mail Padrão')" />
+                            <textarea id="default_email_message" name="default_email_message" rows="4" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm" placeholder="Olá!&#10;Segue em anexo a proposta comercial.&#10;Fico à disposição para dúvidas.">{{ old('default_email_message', $setting->default_email_message) }}</textarea>
+                            <p class="text-xs text-gray-400 mt-1.5">{{ __('Mensagem pré-preenchida no envio de orçamento. Você poderá alterá-la antes de cada envio, se necessário.') }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card 5: Modelo de PDF -->
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-gray-150 p-6 md:p-8">
                     <div class="border-b border-gray-150 pb-4 mb-6">
                         <h3 class="text-lg font-bold text-gray-900">{{ __('Modelo de Orçamento em PDF') }}</h3>

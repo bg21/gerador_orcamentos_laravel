@@ -18,24 +18,54 @@ class QuoteController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
         $userId = Auth::id();
-        $quotes = Quote::where('user_id', $userId)
-            ->with('client')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+
+        $query = Quote::where('user_id', $userId)->with('client');
+
+        // Filtro por busca livre (número do orçamento ou nome do cliente)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('quote_number', 'like', "%{$search}%")
+                  ->orWhereHas('client', fn ($c) => $c->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        // Filtro por status
+        if ($request->filled('status') && in_array($request->status, ['draft', 'sent', 'approved', 'declined'])) {
+            $query->where('status', $request->status);
+        }
+
+        // Filtro por cliente específico
+        if ($request->filled('client_id')) {
+            $query->where('client_id', $request->client_id);
+        }
+
+        // Filtro por período (data de emissão)
+        if ($request->filled('date_from')) {
+            $query->whereDate('issue_date', '>=', $request->date_from);
+        }
+        if ($request->filled('date_to')) {
+            $query->whereDate('issue_date', '<=', $request->date_to);
+        }
+
+        $quotes = $query->orderBy('created_at', 'desc')->paginate(10)->appends($request->query());
 
         // Calculate basic statistics for the dashboard/summary
         $stats = [
-            'total' => Quote::where('user_id', $userId)->count(),
-            'pending' => Quote::where('user_id', $userId)->where('status', 'draft')->count(),
-            'sent' => Quote::where('user_id', $userId)->where('status', 'sent')->count(),
-            'approved' => Quote::where('user_id', $userId)->where('status', 'approved')->count(),
+            'total'       => Quote::where('user_id', $userId)->count(),
+            'pending'     => Quote::where('user_id', $userId)->where('status', 'draft')->count(),
+            'sent'        => Quote::where('user_id', $userId)->where('status', 'sent')->count(),
+            'approved'    => Quote::where('user_id', $userId)->where('status', 'approved')->count(),
             'total_value' => Quote::where('user_id', $userId)->where('status', 'approved')->sum('total_amount'),
         ];
 
-        return view('quotes.index', compact('quotes', 'stats'));
+        // Lista de clientes do usuário para o select de filtro
+        $clients = Client::where('user_id', $userId)->orderBy('name')->get();
+
+        return view('quotes.index', compact('quotes', 'stats', 'clients'));
     }
 
     /**
@@ -266,6 +296,7 @@ class QuoteController extends Controller
 
         $request->validate([
             'recipient_email'  => 'required|email',
+            'subject'          => 'required|string|max:255',
             'custom_message'   => 'nullable|string|max:1000',
         ]);
 
@@ -273,7 +304,7 @@ class QuoteController extends Controller
 
         try {
             Mail::to($request->recipient_email)
-                ->send(new QuoteMail($quote, $request->input('custom_message', '')));
+                ->send(new QuoteMail($quote, $request->input('custom_message', ''), $request->input('subject')));
 
             // Automatically move status from draft to sent
             if ($quote->status === 'draft') {
@@ -336,6 +367,58 @@ class QuoteController extends Controller
         $pdf = Pdf::loadView($viewName, compact('quote', 'setting', 'valorExtenso'));
 
         return $pdf->stream("recibo-{$quote->quote_number}.pdf");
+    }
+
+    /**
+     * Duplicate an existing quote.
+     */
+    public function duplicate(Quote $quote)
+    {
+        if ($quote->user_id !== Auth::id()) {
+            abort(403);
+        }
+
+        $userId = Auth::id();
+        $quote->load('items');
+
+        DB::beginTransaction();
+        try {
+            // Generate sequence number
+            $year = now()->year;
+            $count = Quote::where('user_id', $userId)->whereYear('created_at', $year)->count();
+            $sequence = str_pad($count + 1, 4, '0', STR_PAD_LEFT);
+            $quoteNumber = "ORC-{$year}-{$sequence}";
+
+            $newQuote = $quote->replicate();
+            $newQuote->quote_number = $quoteNumber;
+            $newQuote->status = 'draft';
+            
+            $oldIssueDate = \Carbon\Carbon::parse($quote->issue_date);
+            $newQuote->issue_date = now()->format('Y-m-d');
+            
+            if ($quote->due_date) {
+                $days = $oldIssueDate->diffInDays(\Carbon\Carbon::parse($quote->due_date));
+                $newQuote->due_date = now()->addDays($days)->format('Y-m-d');
+            }
+
+            $newQuote->save();
+
+            // Replicate items
+            foreach ($quote->items as $item) {
+                $newItem = $item->replicate();
+                $newItem->quote_id = $newQuote->id;
+                $newItem->save();
+            }
+
+            DB::commit();
+
+            return redirect()->route('quotes.edit', $newQuote)
+                ->with('success', "Orçamento {$quote->quote_number} duplicado com sucesso! O novo orçamento é o {$quoteNumber}.");
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Illuminate\Support\Facades\Log::error("Erro ao duplicar orçamento: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+            return back()->with('error', 'Ocorreu um erro ao duplicar o orçamento: ' . $e->getMessage());
+        }
     }
 
     /**

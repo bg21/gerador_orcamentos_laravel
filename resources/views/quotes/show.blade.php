@@ -18,6 +18,12 @@
                 <a href="{{ route('quotes.edit', $quote) }}" class="inline-flex items-center px-4 py-2 bg-indigo-50 border border-indigo-200 rounded-md font-semibold text-xs text-indigo-700 uppercase tracking-widest hover:bg-indigo-100 transition ease-in-out duration-150">
                     {{ __('Editar') }}
                 </a>
+                <form action="{{ route('quotes.duplicate', $quote) }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" class="inline-flex items-center px-4 py-2 bg-purple-50 border border-purple-200 rounded-md font-semibold text-xs text-purple-700 uppercase tracking-widest hover:bg-purple-100 transition ease-in-out duration-150">
+                        {{ __('Duplicar') }}
+                    </button>
+                </form>
                 <!-- E-mail button -->
                 <button type="button"
                     id="btn-send-email"
@@ -46,6 +52,56 @@
 
     <div class="py-2">
         <div class="max-w-4xl mx-auto sm:px-6 lg:px-8">
+            <!-- Flash Messages -->
+            @if (session('success'))
+                <div class="mb-6 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-md shadow-sm flex items-center justify-between">
+                    <div class="flex items-center">
+                        <svg class="h-5 w-5 text-green-500 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-green-800">{{ session('success') }}</span>
+                    </div>
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div class="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-r-md shadow-sm flex items-center justify-between">
+                    <div class="flex items-center">
+                        <svg class="h-5 w-5 text-red-500 mr-2" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-sm font-medium text-red-800">{{ session('error') }}</span>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Compartilhamento Card -->
+            <div class="bg-white overflow-hidden shadow-md sm:rounded-2xl border border-gray-150 p-5 mb-6" x-data="{ copied: false }">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <h4 class="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                            <svg class="w-4.5 h-4.5 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244m6.513-2.513L12 13.5"></path>
+                            </svg>
+                            Link de Compartilhamento Online
+                        </h4>
+                        <p class="text-xs text-gray-500 mt-1">Envie este link seguro para seu cliente visualizar e aprovar a proposta diretamente pelo navegador.</p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full md:w-auto">
+                        <input type="text" readonly value="{{ $quote->share_url }}" class="flex-grow md:w-80 rounded-xl border border-gray-200 bg-slate-50 px-3 py-2 text-xs text-gray-600 focus:outline-none focus:ring-0">
+                        <button type="button" 
+                                @click="navigator.clipboard.writeText('{{ $quote->share_url }}'); copied = true; setTimeout(() => copied = false, 2000)" 
+                                class="inline-flex items-center justify-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider transition shadow-sm whitespace-nowrap min-w-[90px]">
+                            <span x-show="!copied">Copiar</span>
+                            <span x-show="copied" style="display: none;">Copiado!</span>
+                        </button>
+                        <a href="{{ $quote->share_url }}" target="_blank" class="inline-flex items-center justify-center px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs uppercase tracking-wider transition shadow-sm whitespace-nowrap">
+                            Abrir
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <!-- Proposal card sheet style -->
             <div class="bg-white shadow-lg rounded-2xl border border-gray-150 overflow-hidden" style="--primary-color: {{ $primaryColor }}; --secondary-color: {{ $secondaryColor }};">
                 <!-- Top strip: Brand style / colors -->
@@ -278,10 +334,25 @@
                     <p class="text-xs text-gray-400 mt-1">Pré-preenchido com o e-mail cadastrado do cliente. Edite se necessário.</p>
                 </div>
 
+                <!-- Subject -->
+                <div>
+                    <label for="subject" class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
+                        Assunto do E-mail
+                    </label>
+                    <input
+                        type="text"
+                        id="subject"
+                        name="subject"
+                        value="{{ old('subject', $setting->default_email_subject ?? 'Proposta Comercial ' . $quote->quote_number . ' - ' . ($setting->company_name ?? $quote->user->name)) }}"
+                        required
+                        class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition"
+                    />
+                </div>
+
                 <!-- Custom Message -->
                 <div>
                     <label for="custom_message" class="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-                        Mensagem Personalizada <span class="font-normal text-gray-400 normal-case">(opcional)</span>
+                        Mensagem do E-mail <span class="font-normal text-gray-400 normal-case">(opcional)</span>
                     </label>
                     <textarea
                         id="custom_message"
@@ -290,7 +361,7 @@
                         maxlength="1000"
                         class="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 focus:outline-none transition resize-none"
                         placeholder="Ex: Fico à disposição para qualquer dúvida. Aguardo seu retorno."
-                    ></textarea>
+                    >{{ old('custom_message', $setting->default_email_message ?? '') }}</textarea>
                     <p class="text-xs text-gray-400 mt-1">Esta mensagem aparecerá em destaque no corpo do e-mail.</p>
                 </div>
 

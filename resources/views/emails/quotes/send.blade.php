@@ -327,8 +327,11 @@
         <div class="cta-box">
             <p class="cta-text">
                 O PDF da proposta está anexado a este e-mail para facilitar sua análise.<br>
-                Em caso de dúvidas, entre em contato conosco.
+                Você também pode visualizar, baixar e aprovar esta proposta online:
             </p>
+            <div style="text-align: center; margin: 18px 0;">
+                <a href="{{ $quote->share_url }}" style="display: inline-block; background: {{ $quote->user->companySetting?->primary_color ?? '#4f46e5' }}; color: #ffffff; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.15);">Visualizar e Aprovar Online</a>
+            </div>
             <p style="font-size:13px;color:#374151;font-weight:600;">
                 {{ $setting?->email ?? $quote->user->email }}
                 @if($setting?->phone)

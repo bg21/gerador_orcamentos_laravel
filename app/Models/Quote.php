@@ -53,7 +53,25 @@ class Quote extends Model
         'discount',
         'total_amount',
         'notes',
+        'share_token',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($quote) {
+            $quote->share_token = \Illuminate\Support\Str::random(32);
+        });
+    }
+
+    /**
+     * Get the public sharing URL.
+     */
+    public function getShareUrlAttribute(): string
+    {
+        return route('public.quote.show', $this->share_token);
+    }
 
     /**
      * Get the user that owns this quote.

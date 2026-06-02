@@ -46,6 +46,8 @@ class CompanySettingController extends Controller
             'signature_path' => 'nullable|image|max:2048',
             'pdf_template'   => 'nullable|string|in:classic,modern,tabular,premium',
             'receipt_template' => 'nullable|string|in:classic,modern,tabular',
+            'default_email_subject' => 'nullable|string|max:255',
+            'default_email_message' => 'nullable|string',
         ]);
 
         $setting = Auth::user()->companySetting;
@@ -60,6 +62,8 @@ class CompanySettingController extends Controller
             'signature_text',
             'pdf_template',
             'receipt_template',
+            'default_email_subject',
+            'default_email_message',
         ]);
 
         // Handle Logo Upload

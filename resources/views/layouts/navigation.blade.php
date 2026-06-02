@@ -24,6 +24,17 @@
                     <x-nav-link :href="route('quotes.index')" :active="request()->routeIs('quotes.*')">
                         {{ __('Orçamentos') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('subscription.index')" :active="request()->routeIs('subscription.*')">
+                        <span class="flex items-center gap-1 {{ auth()->user()->isPro() ? 'text-emerald-600 font-bold' : 'text-indigo-600 font-bold' }}">
+                            @if(auth()->user()->isPro())
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+                                Pro
+                            @else
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                Upgrade
+                            @endif
+                        </span>
+                    </x-nav-link>
                 </div>
             </div>
 
@@ -91,6 +102,17 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('quotes.index')" :active="request()->routeIs('quotes.*')">
                 {{ __('Orçamentos') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('subscription.index')" :active="request()->routeIs('subscription.*')">
+                <span class="flex items-center gap-1 {{ auth()->user()->isPro() ? 'text-emerald-600 font-bold' : 'text-indigo-600 font-bold' }}">
+                    @if(auth()->user()->isPro())
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+                        Pro
+                    @else
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        Upgrade
+                    @endif
+                </span>
             </x-responsive-nav-link>
         </div>
 

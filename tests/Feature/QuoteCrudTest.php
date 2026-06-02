@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Mail\QuoteMail;
 use App\Models\Client;
 use App\Models\Quote;
 use App\Models\QuoteItem;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class QuoteCrudTest extends TestCase
@@ -206,5 +208,160 @@ class QuoteCrudTest extends TestCase
         
         $response->assertOk();
         $response->assertHeader('Content-Type', 'application/pdf');
+    }
+
+    // =====================================================
+    // TESTES DE ENVIO POR E-MAIL
+    // =====================================================
+
+
+    /**
+     * Helper: cria um quote completo com item para uso nos testes de e-mail.
+     */
+    private function makeQuoteWithItem(User $user): Quote
+    {
+        $client = Client::create([
+            'user_id' => $user->id,
+            'name'    => 'Cliente E-mail Teste',
+            'email'   => 'cliente@emailteste.com',
+        ]);
+
+        $quote = Quote::create([
+            'user_id'      => $user->id,
+            'client_id'    => $client->id,
+            'quote_number' => 'ORC-2026-EMAIL',
+            'status'       => 'draft',
+            'issue_date'   => '2026-06-01',
+            'total_amount' => 500.00,
+        ]);
+
+        QuoteItem::create([
+            'quote_id'    => $quote->id,
+            'description' => 'Desenvolvimento Web',
+            'quantity'    => 2,
+            'unit_price'  => 250.00,
+            'total_price' => 500.00,
+        ]);
+
+        return $quote;
+    }
+
+    /**
+     * Envio de e-mail bem-sucedido: Mailable disparado com destinatário correto.
+     */
+    public function test_authenticated_user_can_send_quote_by_email(): void
+    {
+        Mail::fake();
+
+        $user  = User::factory()->create();
+        $quote = $this->makeQuoteWithItem($user);
+
+        $response = $this->actingAs($user)->post(route('quotes.sendEmail', $quote), [
+            'recipient_email' => 'cliente@emailteste.com',
+            'custom_message'  => 'Segue a proposta conforme combinado.',
+        ]);
+
+        $response->assertRedirect(route('quotes.show', $quote));
+        $response->assertSessionHas('success');
+
+        // Verifica que o Mailable foi enviado para o endereço correto
+        Mail::assertSent(QuoteMail::class, function (QuoteMail $mail) use ($quote) {
+            return $mail->quote->id === $quote->id
+                && $mail->customMessage === 'Segue a proposta conforme combinado.'
+                && $mail->hasTo('cliente@emailteste.com');
+        });
+    }
+
+    /**
+     * Status deve mudar automaticamente de 'draft' para 'sent' após o envio.
+     */
+    public function test_quote_status_changes_to_sent_after_email(): void
+    {
+        Mail::fake();
+
+        $user  = User::factory()->create();
+        $quote = $this->makeQuoteWithItem($user);
+
+        $this->assertEquals('draft', $quote->status);
+
+        $this->actingAs($user)->post(route('quotes.sendEmail', $quote), [
+            'recipient_email' => 'destino@qualquer.com',
+        ]);
+
+        $this->assertDatabaseHas('quotes', [
+            'id'     => $quote->id,
+            'status' => 'sent',
+        ]);
+    }
+
+    /**
+     * Status 'approved' não deve ser rebaixado para 'sent'.
+     */
+    public function test_approved_quote_status_not_changed_after_email(): void
+    {
+        Mail::fake();
+
+        $user  = User::factory()->create();
+        $quote = $this->makeQuoteWithItem($user);
+        $quote->update(['status' => 'approved']);
+
+        $this->actingAs($user)->post(route('quotes.sendEmail', $quote), [
+            'recipient_email' => 'destino@qualquer.com',
+        ]);
+
+        $this->assertDatabaseHas('quotes', [
+            'id'     => $quote->id,
+            'status' => 'approved', // deve permanecer approved
+        ]);
+    }
+
+    /**
+     * Usuário B não pode enviar e-mail do orçamento do Usuário A (isolamento multi-tenant).
+     */
+    public function test_other_user_cannot_send_email_for_quote(): void
+    {
+        Mail::fake();
+
+        $userA = User::factory()->create();
+        $userB = User::factory()->create();
+        $quote = $this->makeQuoteWithItem($userA);
+
+        $response = $this->actingAs($userB)->post(route('quotes.sendEmail', $quote), [
+            'recipient_email' => 'ataque@hacker.com',
+        ]);
+
+        $response->assertStatus(403);
+        Mail::assertNothingSent();
+    }
+
+    /**
+     * Validação: e-mail inválido deve retornar erro de validação.
+     */
+    public function test_send_email_validates_recipient_email(): void
+    {
+        Mail::fake();
+
+        $user  = User::factory()->create();
+        $quote = $this->makeQuoteWithItem($user);
+
+        $response = $this->actingAs($user)->post(route('quotes.sendEmail', $quote), [
+            'recipient_email' => 'nao-e-um-email-valido',
+        ]);
+
+        $response->assertSessionHasErrors(['recipient_email']);
+        Mail::assertNothingSent();
+    }
+
+    /**
+     * Visitante não pode usar a rota de envio de e-mail.
+     */
+    public function test_guest_cannot_send_quote_email(): void
+    {
+        $userA = User::factory()->create();
+        $quote = $this->makeQuoteWithItem($userA);
+
+        $this->post(route('quotes.sendEmail', $quote), [
+            'recipient_email' => 'alguem@teste.com',
+        ])->assertRedirect(route('login'));
     }
 }

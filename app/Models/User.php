@@ -145,4 +145,12 @@ class User extends Authenticatable
     {
         return $this->hasOne(CompanySetting::class);
     }
+
+    /**
+     * Verifica se o usuário possui uma assinatura ativa (Plano Pro)
+     */
+    public function isPro(): bool
+    {
+        return $this->subscribed('default');
+    }
 }

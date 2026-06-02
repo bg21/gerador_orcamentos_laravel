@@ -67,6 +67,98 @@
                 </div>
             </div>
 
+            {{-- Painel de Filtros --}}
+            <div class="bg-white shadow-sm sm:rounded-lg border border-gray-150 mb-4">
+                <form method="GET" action="{{ route('quotes.index') }}" id="filter-form">
+                    <div class="p-4 border-b border-gray-100 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/></svg>
+                            <span class="text-sm font-semibold text-gray-700">{{ __('Filtros') }}</span>
+                            @if(request()->hasAny(['search','status','client_id','date_from','date_to']))
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                                    {{ __('Ativos') }}
+                                </span>
+                            @endif
+                        </div>
+                        @if(request()->hasAny(['search','status','client_id','date_from','date_to']))
+                            <a href="{{ route('quotes.index') }}" class="text-xs text-red-500 hover:text-red-700 font-medium transition">
+                                ✕ {{ __('Limpar filtros') }}
+                            </a>
+                        @endif
+                    </div>
+                    <div class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                        {{-- Busca livre --}}
+                        <div class="lg:col-span-2">
+                            <label for="search" class="block text-xs font-medium text-gray-600 mb-1">{{ __('Buscar') }}</label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+                                </span>
+                                <input type="text" id="search" name="search" value="{{ request('search') }}"
+                                    placeholder="Nº orçamento ou cliente..."
+                                    class="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition">
+                            </div>
+                        </div>
+
+                        {{-- Status --}}
+                        <div>
+                            <label for="filter-status" class="block text-xs font-medium text-gray-600 mb-1">{{ __('Status') }}</label>
+                            <select id="filter-status" name="status"
+                                class="w-full py-2 px-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition bg-white">
+                                <option value="">{{ __('Todos') }}</option>
+                                <option value="draft"    {{ request('status') === 'draft'    ? 'selected' : '' }}>{{ __('Rascunho') }}</option>
+                                <option value="sent"     {{ request('status') === 'sent'     ? 'selected' : '' }}>{{ __('Enviado') }}</option>
+                                <option value="approved" {{ request('status') === 'approved' ? 'selected' : '' }}>{{ __('Aprovado') }}</option>
+                                <option value="declined" {{ request('status') === 'declined' ? 'selected' : '' }}>{{ __('Recusado') }}</option>
+                            </select>
+                        </div>
+
+                        {{-- Cliente --}}
+                        <div>
+                            <label for="filter-client" class="block text-xs font-medium text-gray-600 mb-1">{{ __('Cliente') }}</label>
+                            <select id="filter-client" name="client_id"
+                                class="w-full py-2 px-3 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition bg-white">
+                                <option value="">{{ __('Todos') }}</option>
+                                @foreach($clients as $client)
+                                    <option value="{{ $client->id }}" {{ request('client_id') == $client->id ? 'selected' : '' }}>
+                                        {{ $client->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        {{-- Período --}}
+                        <div>
+                            <label class="block text-xs font-medium text-gray-600 mb-1">{{ __('Período') }}</label>
+                            <div class="flex gap-1 items-center">
+                                <input type="date" name="date_from" value="{{ request('date_from') }}"
+                                    title="{{ __('De') }}"
+                                    class="w-full py-2 px-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition">
+                                <span class="text-gray-400 text-xs shrink-0">→</span>
+                                <input type="date" name="date_to" value="{{ request('date_to') }}"
+                                    title="{{ __('Até') }}"
+                                    class="w-full py-2 px-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 outline-none transition">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="px-4 pb-4 flex gap-2">
+                        <button type="submit"
+                            class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-md uppercase tracking-widest transition">
+                            <svg class="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z"/></svg>
+                            {{ __('Filtrar') }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            {{-- Resultado dos filtros --}}
+            @if(request()->hasAny(['search','status','client_id','date_from','date_to']))
+                <p class="text-xs text-gray-500 mb-2 px-1">
+                    {{ $quotes->total() }} {{ $quotes->total() === 1 ? 'resultado encontrado' : 'resultados encontrados' }}
+                </p>
+            @endif
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg border border-gray-150">
                 @if ($quotes->isEmpty())
                     <!-- Empty State -->
@@ -76,13 +168,23 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"></path>
                             </svg>
                         </div>
-                        <h3 class="text-lg font-bold text-gray-900 mb-1">{{ __('Nenhum orçamento gerado') }}</h3>
-                        <p class="text-gray-500 text-sm mb-6 max-w-sm mx-auto">
-                            {{ __('Crie propostas comerciais detalhadas com múltiplos serviços, descontos e exporte tudo em PDF.') }}
-                        </p>
-                        <a href="{{ route('quotes.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-md uppercase tracking-widest transition duration-150">
-                            {{ __('Criar meu primeiro orçamento') }}
-                        </a>
+                        @if(request()->hasAny(['search','status','client_id','date_from','date_to']))
+                            <h3 class="text-lg font-bold text-gray-900 mb-1">{{ __('Nenhum resultado encontrado') }}</h3>
+                            <p class="text-gray-500 text-sm mb-6 max-w-sm mx-auto">
+                                {{ __('Tente ajustar ou limpar os filtros aplicados.') }}
+                            </p>
+                            <a href="{{ route('quotes.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold text-xs rounded-md uppercase tracking-widest transition duration-150">
+                                {{ __('Limpar filtros') }}
+                            </a>
+                        @else
+                            <h3 class="text-lg font-bold text-gray-900 mb-1">{{ __('Nenhum orçamento gerado') }}</h3>
+                            <p class="text-gray-500 text-sm mb-6 max-w-sm mx-auto">
+                                {{ __('Crie propostas comerciais detalhadas com múltiplos serviços, descontos e exporte tudo em PDF.') }}
+                            </p>
+                            <a href="{{ route('quotes.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs rounded-md uppercase tracking-widest transition duration-150">
+                                {{ __('Criar meu primeiro orçamento') }}
+                            </a>
+                        @endif
                     </div>
                 @else
                     <!-- Table List -->
@@ -161,6 +263,15 @@
                                                 </svg>
                                                 Email
                                             </a>
+                                            <form action="{{ route('quotes.duplicate', $quote) }}" method="POST" class="inline">
+                                                @csrf
+                                                <button type="submit" class="inline-flex items-center px-2.5 py-1.5 bg-purple-50 border border-purple-200 rounded-md font-semibold text-xs text-purple-700 uppercase tracking-widest shadow-sm hover:bg-purple-100 hover:border-purple-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition ease-in-out duration-150" title="Duplicar Orçamento">
+                                                    <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path>
+                                                    </svg>
+                                                    Duplicar
+                                                </button>
+                                            </form>
                                             <form action="{{ route('quotes.destroy', $quote) }}" method="POST" class="inline" onsubmit="return confirm('Tem certeza que deseja excluir este orçamento? Todos os itens associados serão apagados.');">
                                                 @csrf
                                                 @method('DELETE')
